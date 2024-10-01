@@ -5,6 +5,7 @@ from langchain.schema import HumanMessage
 import json
 from datetime import date
 from dotenv import load_dotenv
+import asyncio
 
 load_dotenv()
 
@@ -66,8 +67,13 @@ class WriterAgent:
         request_message = HumanMessage(content=content)
 
         try:
-            result = await chain_writer.ainvoke({"messages": [request_message]})
+            # Añadir un tiempo de espera más largo
+            result = await asyncio.wait_for(chain_writer.ainvoke({"messages": [request_message]}), timeout=60)
             print("Respuesta cruda del modelo:", result)
+
+            if isinstance(result, str) and "heartbeat" in result.lower():
+                print("El modelo respondió con un heartbeat")
+                raise ValueError("El modelo respondió con un heartbeat en lugar de generar las actas")
 
             if isinstance(result.content, str):
                 try:
@@ -83,9 +89,13 @@ class WriterAgent:
                     raise ValueError("No se pudo parsear la respuesta del modelo como JSON")
             else:
                 raise ValueError("Formato de respuesta inesperado del modelo")
+
+        except asyncio.TimeoutError:
+            print("La operación ha excedido el tiempo de espera")
+            raise ValueError('No se pudieron generar las actas debido a un tiempo de espera excedido')
         except Exception as error:
             print('Error en generate_minutes:', error)
-            raise ValueError('No se pudieron generar las actas')
+            raise ValueError(f'No se pudieron generar las actas: {str(error)}')
 
     def create_content(self, state: MinutesGraphState) -> str:
         today = date.today().strftime("%d/%m/%Y")
