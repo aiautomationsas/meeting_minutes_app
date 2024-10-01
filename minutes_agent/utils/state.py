@@ -1,39 +1,37 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
 from langgraph.graph import add_messages
 from langchain_core.messages import BaseMessage
-from typing import Annotated, Sequence
+from typing import TypedDict, Annotated, Sequence, List, Optional
 
-class Attendee(BaseModel):
-    name: str = Field(..., description="Nombre completo del asistente")
-    position: str = Field(..., description="Cargo o posición del asistente en la organización")
-    role: str = Field(..., description="Rol del asistente en la reunión (ej. moderador, presentador, participante)")
+class Attendee(TypedDict):
+    name: str
+    position: str
+    role: str
 
-class Task(BaseModel):
-    responsible: str = Field(..., description="Nombre de la persona responsable de la tarea")
-    date: str = Field(..., description="Fecha límite para completar la tarea (formato: DD/MM/YYYY)")
-    description: str = Field(..., description="Descripción detallada de la tarea a realizar")
+class Task(TypedDict):
+    responsible: str
+    date: str
+    description: str
 
-class MinutesContent(BaseModel):
-    title: str = Field(..., description="Título de la reunión")
-    date: str = Field(..., description="Fecha en que se llevó a cabo la reunión (formato: DD/MM/YYYY)")
-    attendees: List[Attendee] = Field(..., description="Lista de asistentes a la reunión")
-    summary: str = Field(..., description="Resumen conciso de los principales puntos discutidos en la reunión")
-    takeaways: List[str] = Field(..., description="Lista de los puntos clave o conclusiones importantes de la reunión")
-    conclusions: List[str] = Field(..., description="Lista de conclusiones finales alcanzadas en la reunión")
-    next_meeting: List[str] = Field(..., description="Lista de temas o puntos a tratar en la próxima reunión")
-    tasks: List[Task] = Field(..., description="Lista de tareas asignadas durante la reunión")
-    message: Optional[str] = Field(None, description="Mensaje opcional para el crítico o revisor de las actas")
+class MinutesContent(TypedDict):
+    title: str
+    date: str
+    attendees: List[Attendee]
+    summary: str
+    takeaways: List[str]
+    conclusions: List[str]
+    next_meeting: List[str]
+    tasks: List[Task]
+    message: Optional[str]
 
-class MinutesGraphState(BaseModel):
-    audioFile: Optional[str] = Field(None, description="Ruta al archivo de audio de la reunión, si está disponible")
-    transcript: str = Field(..., description="Transcripción completa de la reunión")
-    wordCount: int = Field(..., description="Número aproximado de palabras esperadas en las actas")
-    minutes: Optional[MinutesContent] = Field(None, description="Contenido detallado de las actas de la reunión")
-    critique: Optional[str] = Field(None, description="Crítica o comentarios sobre las actas generadas")
-    outputFormatMeeting: Optional[str] = Field(None, description="Formato de salida para las actas de la reunión (ej. Markdown)")
-    approved: bool = Field(False, description="Indica si las actas han sido aprobadas")
-    messages: Annotated[Sequence[BaseMessage], add_messages] = Field(default_factory=list, description="Secuencia de mensajes relacionados con el proceso de generación de actas")
+class MinutesGraphState(TypedDict):
+    audioFile: Optional[str]
+    transcript: str
+    wordCount: int
+    minutes: MinutesContent
+    critique: str
+    outputFormatMeeting: str
+    approved: bool
+    messages: Annotated[Sequence[BaseMessage], add_messages]
 
 # Valor por defecto para messages
 def default_messages() -> List[BaseMessage]:
