@@ -4,6 +4,8 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema import HumanMessage, AIMessage
 import json
 from datetime import date
+import asyncio
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from .state import MinutesGraphState
 
@@ -51,13 +53,19 @@ class CritiqueAgent:
             return result.content.strip()
         return "None"
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    async def _invoke_chain(self, chain_critique, messages):
+        return await chain_critique.ainvoke({"messages": messages})
+
     async def critique(self, state: MinutesGraphState) -> Dict[str, Any]:
         chain_critique = self.prompt | self.llm
         content = self.get_content(state['minutes'], state['transcript'])
         request_message = HumanMessage(content=content)
 
         try:
-            result = await chain_critique.ainvoke({"messages": [request_message]})
+            # Añadir un pequeño retraso antes de la llamada a la API
+            await asyncio.sleep(1)
+            result = await self._invoke_chain(chain_critique, [request_message])
             print("Respuesta cruda del modelo:", result)
             critique = self.process_critique_result(result)
             return {**state, "critique": critique}

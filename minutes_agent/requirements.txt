@@ -3,3 +3,4 @@ langchain_cohere
 langchain_core
 python-dotenv
 langchain_community
+tenacity

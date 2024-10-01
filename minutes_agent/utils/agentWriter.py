@@ -6,6 +6,7 @@ import json
 from datetime import date
 from dotenv import load_dotenv
 import asyncio
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 load_dotenv()
 
@@ -17,6 +18,10 @@ class WriterAgent:
             model="command-r-plus",
             temperature=0
         )
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    async def _invoke_chain(self, chain, messages):
+        return await chain.ainvoke({"messages": messages})
 
     async def writer(self, state: MinutesGraphState) -> MinutesContent:
         prompt = self.create_prompt('write')
@@ -67,13 +72,10 @@ class WriterAgent:
         request_message = HumanMessage(content=content)
 
         try:
-            # Añadir un tiempo de espera más largo
-            result = await asyncio.wait_for(chain_writer.ainvoke({"messages": [request_message]}), timeout=60)
+            # Añadir un pequeño retraso antes de la llamada a la API
+            await asyncio.sleep(1)
+            result = await self._invoke_chain(chain_writer, [request_message])
             print("Respuesta cruda del modelo:", result)
-
-            if isinstance(result, str) and "heartbeat" in result.lower():
-                print("El modelo respondió con un heartbeat")
-                raise ValueError("El modelo respondió con un heartbeat en lugar de generar las actas")
 
             if isinstance(result.content, str):
                 try:
@@ -89,13 +91,10 @@ class WriterAgent:
                     raise ValueError("No se pudo parsear la respuesta del modelo como JSON")
             else:
                 raise ValueError("Formato de respuesta inesperado del modelo")
-
-        except asyncio.TimeoutError:
-            print("La operación ha excedido el tiempo de espera")
-            raise ValueError('No se pudieron generar las actas debido a un tiempo de espera excedido')
         except Exception as error:
             print('Error en generate_minutes:', error)
-            raise ValueError(f'No se pudieron generar las actas: {str(error)}')
+            print('Detalles del error:', str(error))
+            raise ValueError('No se pudieron generar las actas')
 
     def create_content(self, state: MinutesGraphState) -> str:
         today = date.today().strftime("%d/%m/%Y")
