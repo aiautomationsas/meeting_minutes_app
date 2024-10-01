@@ -13,8 +13,7 @@ def should_continue(state: MinutesGraphState) -> str:
 # Crear el grafo
 workflow = (
     StateGraph(MinutesGraphState)
-    # Begin with a call LLM
-    .add_node("read_transcript", read_transcript) # call model and include read_transcript into create_minutes
+    .add_node("read_transcript", read_transcript)
     .add_node("create_minutes", create_minutes)
     .add_node("create_critique", create_critique)
     .add_node("human_critique", human_critique)
