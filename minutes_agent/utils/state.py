@@ -29,10 +29,10 @@ class MinutesGraphState(BaseModel):
     audioFile: Optional[str] = Field(None, description="Ruta al archivo de audio de la reunión, si está disponible")
     transcript: str = Field(..., description="Transcripción completa de la reunión")
     wordCount: int = Field(..., description="Número aproximado de palabras esperadas en las actas")
-    minutes: MinutesContent = Field(..., description="Contenido detallado de las actas de la reunión")
-    critique: str = Field(..., description="Crítica o comentarios sobre las actas generadas")
-    outputFormatMeeting: str = Field(..., description="Formato de salida para las actas de la reunión (ej. Markdown)")
-    approved: bool = Field(..., description="Indica si las actas han sido aprobadas")
+    minutes: Optional[MinutesContent] = Field(None, description="Contenido detallado de las actas de la reunión")
+    critique: Optional[str] = Field(None, description="Crítica o comentarios sobre las actas generadas")
+    outputFormatMeeting: Optional[str] = Field(None, description="Formato de salida para las actas de la reunión (ej. Markdown)")
+    approved: bool = Field(False, description="Indica si las actas han sido aprobadas")
     messages: Annotated[Sequence[BaseMessage], add_messages] = Field(default_factory=list, description="Secuencia de mensajes relacionados con el proceso de generación de actas")
 
 # Valor por defecto para messages
