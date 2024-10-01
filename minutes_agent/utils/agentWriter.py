@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from utils.state import MinutesGraphState, MinutesContent
+from minutes_agent.utils.state import MinutesGraphState, MinutesContent
 
 class WriterAgent:
     def __init__(self):
@@ -66,19 +66,23 @@ class WriterAgent:
         request_message = HumanMessage(content=content)
 
         try:
-            result = await chain_writer.ainvoke({"messages": [request_message]})  # Usa ainvoke para la llamada asíncrona
+            result = await chain_writer.ainvoke({"messages": [request_message]})
             print("Respuesta cruda del modelo:", result)
 
             if isinstance(result.content, str):
                 try:
                     json_str = self.extract_json(result.content)
-                    parsed_result = json.loads(json_str)["minutes"]
-                except json.JSONDecodeError:
+                    parsed_result = json.loads(json_str)
+                    if "minutes" in parsed_result:
+                        return parsed_result["minutes"]
+                    else:
+                        raise ValueError("La respuesta no contiene la clave 'minutes'")
+                except json.JSONDecodeError as e:
+                    print(f"Error al decodificar JSON: {e}")
+                    print("Contenido que causó el error:", json_str)
                     raise ValueError("No se pudo parsear la respuesta del modelo como JSON")
             else:
                 raise ValueError("Formato de respuesta inesperado del modelo")
-
-            return parsed_result
         except Exception as error:
             print('Error en generate_minutes:', error)
             raise ValueError('No se pudieron generar las actas')
@@ -117,11 +121,15 @@ class WriterAgent:
                     y deben estar divididas en párrafos usando caracteres de nueva línea."""
 
     def extract_json(self, string: str) -> str:
-        json_start = string.find('{')
-        json_end = string.rfind('}')
-        if json_start != -1 and json_end != -1 and json_end > json_start:
-            return string[json_start:json_end + 1]
-        return string
+        try:
+            return json.loads(string)
+        except json.JSONDecodeError:
+            # Si falla, intentamos extraer manualmente
+            json_start = string.find('{')
+            json_end = string.rfind('}')
+            if json_start != -1 and json_end != -1 and json_end > json_start:
+                return string[json_start:json_end + 1]
+            raise ValueError("No se pudo extraer un JSON válido de la respuesta")
 
     async def run(self, state: MinutesGraphState) -> MinutesContent:
         if state.get("critique") and state["critique"].strip() != "":
