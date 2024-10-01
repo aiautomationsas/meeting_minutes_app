@@ -1,8 +1,4 @@
-import sys
-sys.path.append('/home/santiago/ai_automation/langgraph_cloud/meeting_minutes_app')
-import json
 from langgraph.graph import StateGraph, END, START
-#from langgraph.checkpoint.memory import MemorySaver
 from minutes_agent.utils.nodes import read_transcript, create_minutes, create_critique, human_critique, human_approved, output_meeting
 from minutes_agent.utils.state import MinutesGraphState
 
@@ -33,5 +29,4 @@ workflow = (
     .add_edge("output_meeting", END)
 )
 
-#checkpointer = MemorySaver()
 graph =  workflow.compile()
