@@ -21,7 +21,7 @@ class MinutesContent(TypedDict):
     conclusions: List[str]
     next_meeting: List[str]
     tasks: List[Task]
-    message: str
+    message: Optional[str]
 
 class MinutesGraphState(TypedDict):
     audioFile: Optional[str]
