@@ -1,12 +1,12 @@
-from typing import List
-from langchain_cohere import ChatCohere 
+from typing import Dict, Any
+from langchain_cohere import ChatCohere  # Actualiza la importación
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema import HumanMessage
 import json
 from datetime import date
 from dotenv import load_dotenv
-from langchain.output_parsers import JsonOutputParser
-from langchain.pydantic_v1 import BaseModel, Field
+import asyncio
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 load_dotenv()
 
@@ -18,7 +18,10 @@ class WriterAgent:
             model="command-r-plus",
             temperature=0
         )
-        self.output_parser = JsonOutputParser(pydantic_object=MinutesSchema)
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    async def _invoke_chain(self, chain, messages):
+        return await chain.ainvoke({"messages": messages})
 
     async def writer(self, state: MinutesGraphState) -> MinutesContent:
         prompt = self.create_prompt('write')
@@ -37,7 +40,7 @@ class WriterAgent:
         ])
 
     def get_format_instructions(self) -> str:
-        return self.output_parser.get_format_instructions()
+        return "Responde con un objeto JSON válido con una única clave 'minutes' que contenga los siguientes campos: 'title', 'date', 'attendees', 'summary', 'takeaways', 'conclusions', 'next_meeting', 'tasks' y 'message'."
 
     def get_system_message(self, type: str, format_instructions: str) -> str:
         base_message = f"""Como experto en {'creación de actas de reuniones' if type == 'write' else 'revisión de actas de reuniones'}, eres un chatbot diseñado para {'facilitar el proceso de generación de actas de reuniones de manera eficiente' if type == 'write' else 'mejorar las actas basándote en la crítica proporcionada'}.
@@ -64,15 +67,33 @@ class WriterAgent:
         return base_message
 
     async def generate_minutes(self, state: MinutesGraphState, prompt: ChatPromptTemplate) -> MinutesContent:
-        chain_writer = prompt | self.llm | self.output_parser
+        chain_writer = prompt | self.llm
         content = self.create_content(state)
         request_message = HumanMessage(content=content)
 
         try:
-            result = await chain_writer.ainvoke({"messages": [request_message]})
-            return result
+            # Añadir un pequeño retraso antes de la llamada a la API
+            await asyncio.sleep(1)
+            result = await self._invoke_chain(chain_writer, [request_message])
+            print("Respuesta cruda del modelo:", result)
+
+            if isinstance(result.content, str):
+                try:
+                    json_str = self.extract_json(result.content)
+                    parsed_result = json.loads(json_str)
+                    if "minutes" in parsed_result:
+                        return parsed_result["minutes"]
+                    else:
+                        raise ValueError("La respuesta no contiene la clave 'minutes'")
+                except json.JSONDecodeError as e:
+                    print(f"Error al decodificar JSON: {e}")
+                    print("Contenido que causó el error:", json_str)
+                    raise ValueError("No se pudo parsear la respuesta del modelo como JSON")
+            else:
+                raise ValueError("Formato de respuesta inesperado del modelo")
         except Exception as error:
             print('Error en generate_minutes:', error)
+            print('Detalles del error:', str(error))
             raise ValueError('No se pudieron generar las actas')
 
     def create_content(self, state: MinutesGraphState) -> str:
@@ -124,25 +145,3 @@ class WriterAgent:
             return await self.revise(state)
         else:
             return await self.writer(state)
-
-# Definición del esquema Pydantic para la estructura de las actas
-class Attendee(BaseModel):
-    name: str
-    position: str
-    role: str
-
-class Task(BaseModel):
-    responsible: str
-    date: str
-    description: str
-
-class MinutesSchema(BaseModel):
-    title: str = Field(description="Título de la reunión")
-    date: str = Field(description="Fecha de la reunión")
-    attendees: List[Attendee] = Field(description="Lista de asistentes a la reunión")
-    summary: str = Field(description="Resumen de las actas de la reunión en 3 párrafos claros y coherentes")
-    takeaways: List[str] = Field(description="Puntos clave de las actas de la reunión")
-    conclusions: List[str] = Field(description="Conclusiones y acciones a tomar")
-    next_meeting: List[str] = Field(description="Compromisos adquiridos en la reunión")
-    tasks: List[Task] = Field(description="Lista de tareas con responsable, fecha y descripción")
-    message: str = Field(description="Mensaje para enviar al crítico en respuesta a sus comentarios")
