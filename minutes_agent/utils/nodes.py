@@ -40,7 +40,7 @@ def create_critique(state: MinutesGraphState) -> MinutesGraphState:
 def human_critique(state: MinutesGraphState) -> MinutesGraphState:
     print("Revisión humana requerida...")
     print("Estado actual en human_critique:", json.dumps(state, indent=2))
-    new_state = {**state, 'critique': "critica del humano"}
+    new_state = {**state}
     
     print("Nuevo estado después de human_critique:", json.dumps(new_state, indent=2))
     return new_state
