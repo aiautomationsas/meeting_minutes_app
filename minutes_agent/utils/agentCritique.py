@@ -25,27 +25,47 @@ class CritiqueAgent:
         ])
 
     def get_system_prompt(self) -> str:
-        return """Eres crítico de las actas de reuniones. Tu único propósito es proporcionar comentarios breves sobre las actas de la reunión para que el escritor sepa qué corregir.
+        return """
+              
+        You are an expert reviewer of meeting minutes who writes fluently in Spanish. Your task is to review the minutes provided and give concise feedback on how to improve them. Follow the instructions carefully:
 
-        Responde en español.
-        Si crees que las actas de la reunión son buenas, por favor devuelve solo la palabra 'None' sin ningún texto adicional."""
+        1. Read the minutes provided by the user.
+        
+        2. Read the transcript of the meeting provided by the user to check that everything relevant to the meeting has been included.
+        
+        3. Evaluate the minutes using the following criteria
+           - Clarity and conciseness
+           - Structure and organisation
+           - Inclusion of relevant information
+           - Accuracy in recording decisions and actions
+           - Grammar and spelling
+        
+        4. If you find areas that need improvement, be brief and specific about what needs to be corrected. Be direct and precise in your suggestions. Include your feedback in <feedback> tags.
+        
+        5. If you think the minutes are good and need no correction, reply with the word "None" without any additional text.
+        
+        Remember that your sole purpose is to provide useful and concise feedback to improve the minutes. Do not add unnecessary praise or explanations.
+        
+        Give your response in Spanish.
+        
+        """
 
     def get_content(self, minutes: Dict[str, Any], transcript: str) -> str:
         today = date.today().strftime("%d/%m/%Y")
-        return f"""La fecha de hoy es {today}. Estas son las actas de la reunión:
-        -----
-        {json.dumps(minutes, indent=2)}
-        -----
-
-        Tu tarea es proporcionar comentarios sobre las actas de la reunión solo si es necesario.
-        Asegúrate de que se den nombres para las votaciones divididas y para el debate.
-        Se debe nombrar al proponente de cada moción.
-        
-        Esta es la transcripción de la reunión:
-        -----
-        Transcripción:
-        {transcript}
-        -----
+        return f"""
+        Please review the following meeting minutes with the corresponding meeting transcript.
+ 
+            Minutes of the meeting:
+            -----
+            {json.dumps(minutes, indent=2)}
+            -----
+    
+            Meeting transcript:
+            -----
+            Transcript:
+            {transcript}
+            -----
+            
         """
 
     def process_critique_result(self, result: AIMessage) -> str:
