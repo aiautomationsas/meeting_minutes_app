@@ -1,5 +1,5 @@
 {
-    "dependencies": ["./minutes_agent"],
+    "dependencies": ["./meeting_minutes_agent"],
     "graphs": {
       "agent": "./meeting_minutes_agent/minutes_agent.py:graph"
     },
