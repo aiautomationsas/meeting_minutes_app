@@ -1,0 +1,15 @@
+TRANSCRIPCIÓN DE REUNIÓN
+Proyecto: App MobileHealth
+Fecha: 16 de octubre, 2024
+Hora: 10:00 AM - 11:30 AM
+Participantes: Marina López (ML), Juan Carlos Ruiz (JC), Sofia Vega (SV), Roberto Torres (RT), Ana Chen (AC)
+
+ML: Bienvenidos a todos a nuestra reunión semanal de desarrollo. Como saben, estamos en la fase crítica del desarrollo de MobileHealth. Los números de la última prueba de usuarios muestran una tasa de abandono del 45% en la pantalla de registro, lo cual es inaceptablemente alto. Roberto, ¿puedes compartir tu análisis sobre esto?
+
+RT: Sí, por supuesto. Después de revisar las grabaciones de las sesiones de usuarios, identificamos que el principal problema es que estamos pidiendo demasiada información médica desde el inicio. Los usuarios se sienten abrumados y abandonan antes de completar el proceso. Propongo simplificar el registro inicial a solo email, contraseña y un par de preguntas básicas. Podemos recopilar el resto de la información médica de manera progresiva mientras usan la app.
+
+SV: Me parece una buena idea, pero necesitamos asegurarnos de mantener los estándares de seguridad HIPAA. Ana, ¿podrías evaluar si este enfoque cumple con todas las regulaciones? También sugiero implementar el inicio de sesión con Face ID y Touch ID para hacer el proceso más fluido.
+
+AC: Definitivamente puedo hacer esa evaluación. En una primera mirada, no veo problemas mayores con la propuesta de Roberto, especialmente si implementamos el cifrado end-to-end que discutimos la semana pasada. En cuanto a la biometría, ya tenemos las APIs listas, solo necesitaríamos integrarlas. Juan Carlos, ¿cómo va el desarrollo del backend para soportar estos cambios?
+
+JC: Estamos al 80% con la nueva arquitectura del backend. El mayor desafío ahora mismo es la sincronización de datos entre el registro progresivo y los perfiles de usuario existentes. Necesito aproximadamente una semana más para finalizar la implementación y realizar pruebas exhaustivas. También sugiero programar una sesión específica para discutir la optimización de las consultas a la base de datos, ya que estamos notando algunos cuellos de botella en horas pico.
