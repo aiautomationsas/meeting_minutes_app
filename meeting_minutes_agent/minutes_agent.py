@@ -1,9 +1,10 @@
+"""
 import sys
-import os
+
 
 # Añadir el directorio padre al PYTHONPATH
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+"""
 from typing import Annotated, List
 from langgraph.graph import END, StateGraph, START
 from langgraph.graph.message import add_messages
@@ -14,6 +15,7 @@ from meeting_minutes_agent.utils.reflectionAgent import generate_reflection
 from dotenv import load_dotenv
 from langchain.schema import SystemMessage
 import asyncio
+import os
     
 load_dotenv()
 
