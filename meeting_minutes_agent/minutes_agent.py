@@ -64,7 +64,7 @@ async def generation_node(state: State) -> State:
         action_items: Annotated[List[str], ..., "Follow-up actions and agreed-upon decisions"]
         follow_up: Annotated[List[str], ..., "Next steps and agenda items for subsequent meeting"]
         assigned_actions: Annotated[List[Action], ..., "Detailed action items with ownership and deadlines"]
-        feedback_response: Annotated[str, ..., "Response to the reviewer on the changes made"]
+        feedback_response: Annotated[str, ..., "Response to the reviewer on the changes made. Do not include the meeting minutes, only with the response to the critique."]
 
     generate = meeting_minutes_prompt | llm.with_structured_output(MeetingMinutes)
     
@@ -103,32 +103,57 @@ async def reflection_node(state: State) -> State:
     
     return {"messages": [HumanMessage(content=res.content)]}
 
+
+async def human_approved_node(state: State) -> State:
+    print("\nMinutas generadas:")
+    minutes = json.loads(state["messages"][-2].content)
+    print(json.dumps(minutes, ensure_ascii=False, indent=2))
+    
+    print("\nCrítica generada:")
+    print(state["messages"][-1].content)
+    
+    user_input = input("\n¿Tienes algún comentario sobre esta crítica? (Si no, presiona Enter para aprobar las actas): ").strip()
+    
+    if user_input == "":
+        # Update the last message to indicate approval
+        state["messages"][-1] = HumanMessage(content="")
+    else:
+        # Update the last message with the user's comment
+        state["messages"][-1] = HumanMessage(content=user_input)
+    
+    return state
+
 builder = StateGraph(State)
 builder.add_node("generate", generation_node)
+builder.add_node("human_approved", human_approved_node)
 builder.add_node("reflect", reflection_node)
 builder.add_edge(START, "generate")
+builder.add_edge("generate", "reflect")
+builder.add_edge("reflect", "human_approved")
 
 """
-def should_continue(state: State):
-    if state["messages"][-1] == "":
-        return END
-    else:
-        return "reflect"
-"""
-
 def should_continue(state: State):
     if len(state["messages"]) > 2:  # Si ya hemos generado y reflejado una vez
         return END
     else:
         return "reflect"
+"""
 
-builder.add_conditional_edges("generate", should_continue)
-builder.add_edge("reflect", "generate")
+
+def should_continue(state: State):
+    if state["messages"][-1].content == "":
+        return END
+    else:
+        return "generate"
+
+builder.add_conditional_edges("human_approved", should_continue)
+
+
 memory = MemorySaver()
 graph = builder.compile(checkpointer=memory)
 
 
-config = {"configurable": {"thread_id": "55"}}
+config = {"configurable": {"thread_id": "61"}}
 
 async def process_events():
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -142,7 +167,23 @@ async def process_events():
     }
 
     async for event in graph.astream(initial_state, config):
-        print(event)
+        if isinstance(event, dict):
+            for key, value in event.items():
+                if key == "generate":
+                    print("\nGenerando nuevas minutas...")
+                elif key == "reflect":
+                    print("\nGenerando crítica...")
+                elif key == "human_approved":
+                    if value["messages"][-1].content == "":
+                        print("\nActas aprobadas. Proceso finalizado.")
+                        return
+                    else:
+                        print("\nComentarios recibidos. Generando nuevas minutas...")
+        elif event == END:
+            print("\nProceso finalizado.")
+            return
+        else:
+            print(f"Evento no reconocido: {event}")
         print("---")
 
 if __name__ == "__main__":
