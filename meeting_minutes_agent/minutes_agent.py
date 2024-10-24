@@ -86,6 +86,7 @@ async def reflection_node(state: State) -> State:
                 "system",
                 "You are an expert meeting minutes creator. Generate critique and recommendations for the user's submission."
                 "Respond only with the critique and recommendations, no other text."
+                "The transcript is given in the first message of the user."
                 "Respond in Spanish language",
             ),
             MessagesPlaceholder(variable_name="messages"),
@@ -120,6 +121,11 @@ async def human_approved_node(state: State) -> State:
     else:
         # Update the last message with the user's comment
         state["messages"][-1] = HumanMessage(content=user_input)
+    
+    # Mostrar en consola los mensajes del state con su tipo
+    print("\nMensajes actuales en el estado:")
+    for message in state["messages"]:
+        print(f"{type(message).__name__}: {message.content}")
     
     return state
 
