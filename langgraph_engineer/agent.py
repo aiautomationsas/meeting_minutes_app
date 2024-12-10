@@ -12,7 +12,7 @@ from langgraph_engineer.state import AgentState, OutputState, GraphConfig
 
 
 
-def route_critique(state: AgentState) -> Literal["draft_answer", END]: # type: ignore
+def route_critique(state: AgentState) -> Literal["draft_answer", END]:
     if state['accepted']:
         return END
     else:
@@ -32,7 +32,7 @@ def route_start(state: AgentState) -> Literal["draft_answer", "gather_requiremen
         return "gather_requirements"
 
 
-def route_gather(state: AgentState) -> Literal["draft_answer", END]: # type: ignore
+def route_gather(state: AgentState) -> Literal["draft_answer", END]:
     if state.get('requirements'):
         return "draft_answer"
     else:
