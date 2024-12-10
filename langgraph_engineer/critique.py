@@ -2,7 +2,7 @@ from langgraph_engineer.loader import load_github_file
 from langgraph_engineer.model import _get_model
 from langgraph_engineer.state import AgentState
 from langchain_core.messages import AIMessage
-from pydantic import BaseModel
+from langchain_core.pydantic_v1 import BaseModel
 
 critique_prompt = """You are tasked with critiquing a junior developers first attempt at building a LangGraph application. \
 Here is a long unit test file for LangGraph. This should contain a lot (but possibly not all) \
