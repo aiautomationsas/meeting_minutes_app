@@ -117,27 +117,21 @@ builder.add_node("human_critique", human_critique_node)
 # Modify connections
 builder.add_edge(START, "generate")
 
-def should_continue_reflection(state: State):
-    if len(state["messages"]) > 4:
-        # End after 2 iterations
-        return END
+def should_continue(state: State):
+    # Verificar si ya hemos pasado más de 2 iteraciones
+    if len(state["messages"]) > 2:
+        # Si hemos llegado al límite de iteraciones, terminar
+        last_message = state["messages"][-1].content
+        if last_message.strip() == "Aprobado" or not last_message.strip():
+            return END
+        return "human_critique"
+    
+    # Si no hemos llegado al límite de iteraciones, continuar con reflect
     return "reflect"
 
-builder.add_conditional_edges("generate", should_continue_reflection)
+builder.add_conditional_edges("generate", should_continue)
 builder.add_edge("reflect", "generate")
+builder.add_edge("human_critique", "generate")
 
-"""
-def should_continue(state: State):
-    last_message = state["messages"][-1].content
-    # Si el mensaje es exactamente "Aprobado" o está vacío
-    if last_message.strip() == "Aprobado" or not last_message.strip():
-        return END
-    return "generate" 
-
-builder.add_conditional_edges(
-    "human_critique",
-    should_continue
-)
-"""
 graph = builder.compile()
 

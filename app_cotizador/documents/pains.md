@@ -1,0 +1,1 @@
+La cadena de procesos entre la toma de pedidos y la facturación debe ser más eficiente.

@@ -1,0 +1,3 @@
+Flexo Impresos S.A.S., ubicada en Medellín, Antioquia, se fundó en 2012 y se ha consolidado como un referente en el sector de artes gráficas y flexografía. La empresa ofrece productos como etiquetas adhesivas, mangas termoencogibles y etiquetas in-mould, sirviendo principalmente a clientes de la industria química, agrícola y productos de consumo.
+
+La experiencia acumulada en 12 años de operación y su especialización en flexografía son factores que fortalecen su posición en el mercado. Flexo Impresos se distingue por su capacidad de ofrecer soluciones integrales, desde etiquetas básicas hasta acabados especiales, lo que les permite satisfacer las variadas necesidades de sus clientes.
