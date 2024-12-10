@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/santiago/ai_automation/langgraph_cloud/apps/app_minutes.py", line 3, in <module>
+    from dotenv import load_dotenv
+ModuleNotFoundError: No module named 'dotenv'

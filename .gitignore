@@ -1,27 +1,3 @@
 .venv
 .env
 
-    curl --request POST     --url http://localhost:8123/runs/stream     --header 'Content-Type: application/json'     --data '{
-
-    "assistant_id": "agent",
-    "input": {
-    initial_state = {
-        "audioFile": "",
-        "transcript": "Crea una acta de reunión ficticia sobre la creación de un nuevo producto de software para una empresa de tecnología. No tengo la transcripción",
-        "wordCount": 100,
-        "critique": "",
-        "approved": False,
-        "minutes": "",
-        "outputFormatMeeting": "",
-        "messages": [],
-    }
-    },
-    "metadata": {},
-    "config": {
-        "configurable": {}
-    },
-    "multitask_strategy": "reject",
-    "stream_mode": [
-        "values"
-    ]
-}'

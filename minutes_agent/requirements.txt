@@ -1,6 +1,0 @@
-langgraph
-langchain_cohere
-langchain_core
-python-dotenv
-langchain_community
-langchain_openai
