@@ -71,7 +71,8 @@ async def process_minutes(client, assistant_id: str, minutes_text: str):
     }
     
     try:
-        print("⏳ Generando respuesta...")
+        # Procesamiento inicial
+        print("⏳ Generando respuesta inicial...")
         stream = client.runs.stream(
             assistant_id=assistant_id,
             thread_id=thread_id,
@@ -82,9 +83,53 @@ async def process_minutes(client, assistant_id: str, minutes_text: str):
         
         async for event in stream:
             await process_stream_event(event)
+        
+        # Ciclo de críticas del usuario
+        while True:
+            print("\n📝 Por favor, ingrese sus comentarios (o 'Aprobado' si está conforme):")
+            user_comments = input().strip()
+            
+            # Actualizar el estado con los comentarios del usuario
+            update_state = {
+                "messages": [
+                    HumanMessage(content=user_comments)
+                ]
+            }
+            
+            print("\n🔄 Procesando comentarios...")
+            await client.threads.update_state(
+                thread_id, 
+                update_state,
+                as_node="human_critique"
+            )
+            
+            # Si es aprobado, hacer una última ejecución sin interrupción
+            if user_comments.lower() == "aprobado" or user_comments == "":
+                print("\n✅ Finalizando proceso de aprobación...")
+                async for chunk in client.runs.stream(
+                    assistant_id=assistant_id,
+                    thread_id=thread_id,
+                    input=None,
+                    stream_mode="values"  # Sin interrupt_before para la aprobación final
+                ):
+                    await process_stream_event(chunk)
+                print("\n✅ Acta aprobada y proceso completado")
+                break
+            else:
+                # Continuar el procesamiento después del update para críticas
+                print("\n⏳ Procesando actualización...")
+                async for chunk in client.runs.stream(
+                    assistant_id=assistant_id,
+                    thread_id=thread_id,
+                    input=None,
+                    stream_mode="values",
+                    #interrupt_before=["human_critique"]  # Solo para críticas
+                ):
+                    await process_stream_event(chunk)
             
     except Exception as e:
         print(f"\n❌ Error durante el streaming: {str(e)}")
+        print(f"Detalles del error: {str(e)}")
     finally:
         if 'stream' in locals():
             await stream.aclose()
@@ -99,7 +144,6 @@ async def main():
 
     print("\n👋 Bienvenido al sistema de actas de reunión")
     print("ℹ️  Puede escribir 'salir' en cualquier momento para terminar")
-    
     while True:
         print("\n📝 Por favor, ingrese el acta de la reunión:")
         minutes_text = input().strip()
