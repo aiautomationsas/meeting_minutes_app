@@ -1,7 +1,7 @@
 {
     "dependencies": ["."],
     "graphs": {
-      "agent": "./meeting_minutes_agent/minutes_agent_reflect_interrupt.py:graph",
+      "agent": "./meeting_minutes_agent/minutes_agent_cloud.py:graph",
       "agent_company_research": "./company_research_agent/company_researcher.py:app",
       "agent_cotizador": "./cotizador_agent/cotizador_agent.py:graph",
       "agent_engineer": "./langgraph_engineer/agent.py:graph",
