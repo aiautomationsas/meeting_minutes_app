@@ -14,6 +14,8 @@ async def generation_node(state: State) -> State:
             "system",
             "As an expert in minute meeting creation, you are a chatbot designed to facilitate the process of "
             "generating meeting minutes efficiently.\n" 
+            "You must generate meeting minutes based on the meeting transcript provided by the user.\n"
+            "Do not add or invent information that is not provided by the user.\n"
             "Ensure that your responses are structured, concise, and provide a comprehensive overview of the meeting proceedings for"
             "effective record-keeping and follow-up actions.\n" 
             "If the user provides critique, respond with a revised version of your previous attempts.\n"
@@ -60,6 +62,7 @@ async def revision_minutes_node(state: State) -> State:
             "system", 
             "Revises the previous minutes considering the criticisms and comments received. "
             "Makes adjustments to address comments accurately and professionally. "
+            "Do not add or invent information that is not provided by the user.\n"
             "If you are asked to add information that is not included in the minutes, first review the meeting transcript for context. If not, include what the user is asking for without adding any context. "
             "Respond in Spanish language",
         ),
