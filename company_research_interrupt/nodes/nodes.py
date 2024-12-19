@@ -8,7 +8,7 @@ from company_research_interrupt.state.types import ResearchState
 from company_research_interrupt.nodes.tools import tools, tools_by_name
 
 # Initialize model
-model = ChatOpenAI(model="gpt-4-turbo-preview", temperature=0).bind_tools(tools)
+model = ChatOpenAI(model="gpt-4o-mini", temperature=0).bind_tools(tools)
 
 async def tool_node(state: ResearchState):
     """Process tool calls and store results."""
