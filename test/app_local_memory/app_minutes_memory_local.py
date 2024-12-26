@@ -5,12 +5,13 @@ import asyncio
 from langchain_core.messages import HumanMessage
 from dotenv import load_dotenv
 import json
+import uuid
 
 # Añadir el directorio raíz al PYTHONPATH
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root_dir)
 
-from meeting_minutes_agent.minutes_agent_local_memory import graph
+from meeting_minutes_agent.minutes_agent_cloud import graph
 
 load_dotenv()
 
@@ -22,7 +23,7 @@ async def process_minutes(minutes_text: str):
         "messages": [HumanMessage(content=minutes_text)],
     }
     
-    config = {"configurable": {"thread_id": "10"}}
+    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
     
     try:
         # Procesamiento inicial

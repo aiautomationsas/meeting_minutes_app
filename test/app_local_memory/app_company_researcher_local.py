@@ -5,6 +5,7 @@ import asyncio
 from langchain_core.messages import HumanMessage
 from dotenv import load_dotenv
 import json
+import uuid
 
 # Añadir el directorio raíz al PYTHONPATH
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,11 +22,11 @@ async def process_company_research(company_name: str):
     initial_state = {
         "report": "",
         "documents": {},
-        "messages": [HumanMessage(content=f"Generate a detailed report about {company_name}")],
+        "messages": [HumanMessage(content=f"Generate a detailed report about {company_name}. Respond in Spanish.")],
         "research_count": 0
     }
     
-    config = {"configurable": {"thread_id": "10"}}
+    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
     
     try:
         # Procesamiento inicial

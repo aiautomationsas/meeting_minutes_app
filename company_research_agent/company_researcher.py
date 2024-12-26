@@ -4,6 +4,7 @@ from tavily import AsyncTavilyClient
 import json
 import asyncio
 from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AnyMessage, AIMessage, SystemMessage, ToolMessage
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
@@ -88,6 +89,8 @@ tools = [tavily_search]
 tools_by_name = {tool.name: tool for tool in tools}
 tavily_client = AsyncTavilyClient()
 model = ChatOpenAI(model="gpt-4o-mini",temperature=0).bind_tools(tools)
+#model=ChatOpenAI(model="gpt-4o",temperature=0).bind_tools(tools)
+#model = ChatAnthropic(model="claude-3-5-haiku-20241022",temperature=0).bind_tools(tools)
 
 # Define an async custom tool node to store Tavily's search results for improved processing and filtering.
 async def tool_node(state: ResearchState):
@@ -139,6 +142,7 @@ def should_continue(state: ResearchState) -> Literal["tools", "research"]:
 # Define the function to write the report based on the retrieved documents.
 def write_report(state: ResearchState):
     prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}\n.
+    You write very well reports in Spanish.
     You are an expert researcher, writing a weekly report about recent events.\n
     Your task is to write an in-depth, well-written, and detailed report based on the provided documents.\n
     Here are all the documents you gathered so far:\n{state.get('documents', {})}\n

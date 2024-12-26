@@ -3,6 +3,9 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_anthropic import ChatAnthropic
 from meeting_minutes_agent.state.types import State, MeetingMinutes
+from dotenv import load_dotenv
+
+load_dotenv()
 
 llm = ChatAnthropic(
     model="claude-3-5-haiku-20241022", max_tokens=8000

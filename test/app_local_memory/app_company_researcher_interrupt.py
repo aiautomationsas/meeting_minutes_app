@@ -5,6 +5,7 @@ import asyncio
 from langchain_core.messages import HumanMessage
 from dotenv import load_dotenv
 import json
+import uuid
 
 # Add root directory to PYTHONPATH
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -27,7 +28,7 @@ async def process_company_research(company_name: str):
         "research_complete": False
     }
     
-    config = {"configurable": {"thread_id": "research_1"}}
+    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
     
     try:
         print("⏳ Iniciando investigación...")
