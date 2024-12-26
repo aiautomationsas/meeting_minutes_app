@@ -34,47 +34,30 @@ async def initialize_assistant() -> Tuple[Optional[str], Optional[object]]:
         return None, None
 
 async def process_stream_event(event) -> None:
-    """Process streaming events from the research process."""
+    """Process streaming events, focusing on the last AI response."""
     try:
         if hasattr(event, 'data') and isinstance(event.data, dict):
-            # Procesar documentos del estado
-            if 'documents' in event.data:
-                docs = event.data.get('documents', {})
-                if docs:
-                    # Solo mostrar las fuentes una vez, dependiendo del estado
-                    if event.data.get('research_complete', False):
-                        print("\n📚 Generando informe con las siguientes fuentes:")
-                    elif event.data.get('awaiting_review', False):
-                        print("\n👀 Revisión de fuentes encontradas:")
-                    
-                    for url, doc in docs.items():
-                        print(f"\n🔗 {url}")
-                        print(f"📑 {doc.get('title', 'Sin título')}")
-                        content = doc.get('content', doc.get('snippet', 'Sin contenido'))
-                        print(f"📄 {content}\n")
-                        print("-" * 80)
-            
-            # Procesar mensajes del estado
-            if 'messages' in event.data:
-                messages = event.data.get('messages', [])
-                if messages:
-                    last_message = messages[-1]
-                    
-                    # Procesar mensajes del asistente
-                    if last_message.get('type') == 'ai':
-                        content = last_message.get('content', '')
-                        if content and 'report' in event.data:
-                            print("\n📊 Reporte Final:")
+            messages = event.data.get('messages', [])
+            if messages:
+                # Obtener el último mensaje
+                last_message = messages[-1]
+                if last_message.get('type') == 'ai':
+                    content = last_message.get('content', '')
+                    if content:
+                        try:
+                            # Intentar parsear como JSON para mejor formato
+                            reporte = json.loads(content)
+                            print("\n📄 Reporte generado:")
+                            print(json.dumps(reporte, ensure_ascii=False, indent=2))
+                        except json.JSONDecodeError:
+                            # Si no es JSON, mostrar como texto plano
+                            print("\n📄 Reporte generado:")
                             print(content)
-                        elif content:
-                            print("\n" + content)
-            
     except Exception as e:
         print(f"\n❌ Error processing event: {str(e)}")
-        print(f"Event data: {event.data if hasattr(event, 'data') else 'No data'}")
 
 async def process_company_research(client, assistant_id: str, company_name: str):
-    """Process company research with a new thread and handle streaming."""
+    """Process company research with a new thread."""
     thread_id = await create_new_thread(client)
     if not thread_id:
         print("❌ Error: Could not create new thread")
@@ -84,89 +67,25 @@ async def process_company_research(client, assistant_id: str, company_name: str)
     initial_state = {
         "report": "",
         "documents": {},
-        "messages": [HumanMessage(content=f"Generate a detailed report about {company_name}")],
-        "research_count": 0,
-        "awaiting_review": False,
-        "research_complete": False
+        "messages": [HumanMessage(content=f"Generate a detailed report about {company_name}. Respond in Spanish.")],
+        "research_count": 0
     }
     
     try:
+        # Procesamiento inicial
         print("⏳ Iniciando investigación...")
-        current_docs = {}
-        
-        # Primera ejecución hasta el interrupt
         stream = client.runs.stream(
             assistant_id=assistant_id,
             thread_id=thread_id,
             input=initial_state,
-            stream_mode="values",
-            interrupt_before=["human_review"]
+            stream_mode="values"
         )
         
         async for event in stream:
             await process_stream_event(event)
             
-            if hasattr(event, 'data') and isinstance(event.data, dict):
-                # Guardar los documentos actuales
-                if 'documents' in event.data:
-                    current_docs = event.data.get('documents', {})
-                
-                if event.data.get('awaiting_review', False):
-                    while True:
-                        print("\n¿Desea continuar con estas fuentes? (s/n):")
-                        user_response = input().strip().lower()
-                        
-                        if user_response == 's':
-                            filtered_docs = current_docs
-                            update_state = {
-                                "messages": [HumanMessage(content="Continue with all sources")],
-                                "documents": filtered_docs,
-                                "awaiting_review": False,
-                                "research_complete": False
-                            }
-                            break
-                        elif user_response == 'n':
-                            print("\nSeleccione las URLs a mantener (separadas por coma):")
-                            selected_urls = [url.strip() for url in input().strip().split(',')]
-                            
-                            # Filtrar documentos
-                            filtered_docs = {
-                                url: doc
-                                for url, doc in current_docs.items()
-                                if url in selected_urls
-                            }
-                            
-                            update_state = {
-                                "messages": [HumanMessage(content=f"Continue with selected sources: {', '.join(selected_urls)}")],
-                                "documents": filtered_docs,  # Solo los documentos seleccionados
-                                "awaiting_review": False,
-                                "research_complete": False
-                            }
-                            break
-                        else:
-                            print("Por favor, responda 's' o 'n'")
-                    
-                    # Actualizar estado con los documentos filtrados
-                    await client.threads.update_state(
-                        thread_id, 
-                        update_state,
-                        as_node="human_review"
-                    )
-                    
-                    # Continuar con el procesamiento
-                    print("\n⏳ Generando informe final...")
-                    async for chunk in client.runs.stream(
-                        assistant_id=assistant_id,
-                        thread_id=thread_id,
-                        input=None,
-                        stream_mode="values"
-                    ):
-                        await process_stream_event(chunk)
-                    break
-            
     except Exception as e:
-        print(f"\n❌ Error durante el streaming: {str(e)}")
-        print(f"Detalles del error: {str(e)}")
+        print(f"\n❌ Error durante el proceso: {str(e)}")
     finally:
         if 'stream' in locals():
             await stream.aclose()
