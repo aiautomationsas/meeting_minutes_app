@@ -33,28 +33,6 @@ async def initialize_assistant() -> Tuple[Optional[str], Optional[object]]:
         print(f"Error initializing assistant: {str(e)}")
         return None, None
 
-async def process_stream_event(event) -> None:
-    """Process streaming events, focusing on the last AI response."""
-    try:
-        if hasattr(event, 'data') and isinstance(event.data, dict):
-            messages = event.data.get('messages', [])
-            if messages:
-                # Obtener el último mensaje de tipo 'ai'
-                ai_messages = [msg for msg in messages if msg.get('type') == 'ai']
-                if ai_messages:
-                    last_ai_message = ai_messages[-1]
-                    content = last_ai_message.get('content', '')
-                    try:
-                        # Intentar parsear como JSON para mejor formato
-                        acta = json.loads(content)
-                        print("\n📄 Última versión del acta:")
-                        print(json.dumps(acta, ensure_ascii=False, indent=2))
-                    except json.JSONDecodeError:
-                        # Si no es JSON, mostrar como texto plano
-                        print("\n📄 Última respuesta:")
-                        print(content)
-    except Exception as e:
-        print(f"\n❌ Error processing event: {str(e)}")
 
 async def process_minutes(client, assistant_id: str, minutes_text: str):
     """Process minutes text with a new thread and handle streaming."""
@@ -70,9 +48,13 @@ async def process_minutes(client, assistant_id: str, minutes_text: str):
         ]
     }
     
+    revision_count = 0
+    last_content = None
+    response_count = 0
+    
     try:
         # Procesamiento inicial
-        print("⏳ Generando respuesta inicial...")
+        print("⏳ Generando borrador inicial...")
         stream = client.runs.stream(
             assistant_id=assistant_id,
             thread_id=thread_id,
@@ -82,7 +64,28 @@ async def process_minutes(client, assistant_id: str, minutes_text: str):
         )
         
         async for event in stream:
-            await process_stream_event(event)
+            if hasattr(event, 'data') and isinstance(event.data, dict):
+                messages = event.data.get('messages', [])
+                if messages:
+                    ai_messages = [msg for msg in messages if msg.get('type') == 'ai']
+                    if ai_messages:
+                        content = ai_messages[-1].get('content', '')
+                        if content != last_content:
+                            last_content = content
+                            response_count += 1
+                            try:
+                                acta = json.loads(content)
+                                if response_count == 1:
+                                    print("\n📄 Borrador inicial del acta:")
+                                else:
+                                    print("\n🤔 Borrador con reflexión AI:")
+                                print(json.dumps(acta, ensure_ascii=False, indent=2))
+                            except json.JSONDecodeError:
+                                if response_count == 1:
+                                    print("\n📄 Borrador inicial:")
+                                else:
+                                    print("\n🤔 Borrador con reflexión AI:")
+                                print(content)
         
         # Ciclo de críticas del usuario
         while True:
@@ -96,36 +99,69 @@ async def process_minutes(client, assistant_id: str, minutes_text: str):
                 ]
             }
             
-            print("\n🔄 Procesando comentarios...")
-            await client.threads.update_state(
-                thread_id, 
-                update_state,
-                as_node="human_critique"
-            )
-            
-            # Si es aprobado, hacer una última ejecución sin interrupción
             if user_comments.lower() == "aprobado" or user_comments == "":
-                print("\n✅ Finalizando proceso de aprobación...")
+                print("\n✨ Generando versión final aprobada...")
+                # Primero actualizamos el estado
+                await client.threads.update_state(
+                    thread_id, 
+                    update_state,
+                    as_node="human_critique"
+                )
+                # Luego ejecutamos el stream final
                 async for chunk in client.runs.stream(
                     assistant_id=assistant_id,
                     thread_id=thread_id,
                     input=None,
-                    stream_mode="values"  # Sin interrupt_before para la aprobación final
+                    stream_mode="values"
                 ):
-                    await process_stream_event(chunk)
-                print("\n✅ Acta aprobada y proceso completado")
+                    if hasattr(chunk, 'data') and isinstance(chunk.data, dict):
+                        messages = chunk.data.get('messages', [])
+                        if messages:
+                            ai_messages = [msg for msg in messages if msg.get('type') == 'ai']
+                            if ai_messages:
+                                content = ai_messages[-1].get('content', '')
+                                if content != last_content:
+                                    last_content = content
+                                    try:
+                                        acta = json.loads(content)
+                                        print("\n📋 ACTA FINAL APROBADA:")
+                                        print(json.dumps(acta, ensure_ascii=False, indent=2))
+                                    except json.JSONDecodeError:
+                                        print("\n📋 VERSIÓN FINAL APROBADA:")
+                                        print(content)
+ 
+                print("\n✅ Proceso de acta completado")
                 break
             else:
-                # Continuar el procesamiento después del update para críticas
-                print("\n⏳ Procesando actualización...")
+                revision_count += 1
+                print(f"\n🔄 Procesando revisión #{revision_count}...")
+                await client.threads.update_state(
+                    thread_id, 
+                    update_state,
+                    as_node="human_critique"
+                )
+                
                 async for chunk in client.runs.stream(
                     assistant_id=assistant_id,
                     thread_id=thread_id,
                     input=None,
                     stream_mode="values",
-                    #interrupt_before=["human_critique"]  # Solo para críticas
                 ):
-                    await process_stream_event(chunk)
+                    if hasattr(chunk, 'data') and isinstance(chunk.data, dict):
+                        messages = chunk.data.get('messages', [])
+                        if messages:
+                            ai_messages = [msg for msg in messages if msg.get('type') == 'ai']
+                            if ai_messages:
+                                content = ai_messages[-1].get('content', '')
+                                if content != last_content:
+                                    last_content = content
+                                    try:
+                                        acta = json.loads(content)
+                                        print(f"\n📝 Revisión #{revision_count} del acta:")
+                                        print(json.dumps(acta, ensure_ascii=False, indent=2))
+                                    except json.JSONDecodeError:
+                                        print(f"\n📝 Revisión #{revision_count}:")
+                                        print(content)
             
     except Exception as e:
         print(f"\n❌ Error durante el streaming: {str(e)}")

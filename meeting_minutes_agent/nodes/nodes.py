@@ -41,7 +41,7 @@ async def reflection_node(state: State) -> State:
             "Respond only with the critique and recommendations, no other text."
             "If the meeting minutes provided is already perfect, just say so."
             "You must respect the structure of the meeting minutes provided. Do not add or remove any sections."
-            "The meeting minutes provided is given in the first message of the user."
+            "The meeting transcript provided is given in the first message of the user."
             "Respond in Spanish language",
         ),
         MessagesPlaceholder(variable_name="messages"),

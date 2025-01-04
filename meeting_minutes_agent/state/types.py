@@ -9,6 +9,7 @@ class Attendee(TypedDict):
     name: Annotated[str, ..., "Participant's full name"]
     position: Annotated[str, ..., "Professional title or role within the organization"]
     role: Annotated[str, ..., "Meeting participation role (e.g., Chair, Secretary, Stakeholder)"]
+    email: Annotated[None | str, ..., "Participant's email address (optional)"]
 
 class Action(TypedDict):
     owner: Annotated[str, ..., "Action item owner/delegate"]
@@ -18,7 +19,7 @@ class Action(TypedDict):
 class MeetingMinutes(TypedDict):
     title: Annotated[str, ..., "Official meeting title or agenda topic"]
     date: Annotated[str, ..., "Meeting date and time"]
-    attendees: Annotated[List[Attendee], ..., "List of participants and their roles"]
+    attendees: Annotated[List[Attendee], ..., "List of participants with their roles, positions, and contact emails"]
     summary: Annotated[str, ..., "Executive summary highlighting key discussions and decisions"]
     key_points: Annotated[List[str], ..., "Strategic points and major discussion outcomes"]
     action_items: Annotated[List[str], ..., "Follow-up actions and agreed-upon decisions"]

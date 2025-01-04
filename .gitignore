@@ -1,12 +1,3 @@
-# Virtual Environment
-.venv
-venv/
-ENV/
-
-# Environment Variables
-.env
-.env.*
-
 # Python
 __pycache__/
 *.py[cod]
@@ -29,6 +20,13 @@ wheels/
 .installed.cfg
 *.egg
 
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
 # IDE
 .idea/
 .vscode/
@@ -36,18 +34,17 @@ wheels/
 *.swo
 .DS_Store
 
-# Logs
-*.log
-logs/
-log/
-
-# Testing
-.coverage
-.pytest_cache/
-htmlcov/
-.tox/
-.nox/
-
 # Jupyter Notebook
 .ipynb_checkpoints
+
+# Local development
+*.log
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Distribution
+*.tar.gz
+*.zip
 
