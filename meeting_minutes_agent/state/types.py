@@ -26,3 +26,6 @@ class MeetingMinutes(TypedDict):
     follow_up: Annotated[List[str], ..., "Next steps and agenda items for subsequent meeting"]
     assigned_actions: Annotated[List[Action], ..., "Detailed action items with ownership and deadlines"]
     feedback_response: Annotated[str, ..., "Response to the reviewer on the changes made"]
+
+class Keypoints(TypedDict):
+    key_points: Annotated[List[str], ..., "Strategic points and major discussion outcomes"]

@@ -15,6 +15,14 @@ from meeting_minutes_agent.minutes_agent_cloud import graph
 
 load_dotenv()
 
+def read_meeting_file(file_path: str) -> str:
+    """Lee el contenido de un archivo de transcripción de reunión."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return file.read()
+    except Exception as e:
+        raise Exception(f"Error al leer el archivo: {str(e)}")
+
 async def process_minutes(minutes_text: str):
     """Process minutes text and handle user interactions."""
     print("\n🔍 Procesando acta...")
@@ -24,48 +32,83 @@ async def process_minutes(minutes_text: str):
     }
     
     config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+    revision_count = 0
     
     try:
-        # Procesamiento inicial
-        print("⏳ Generando respuesta inicial...")
-        resultado = await graph.ainvoke(initial_state, config, interrupt_before=["human_critique"])
+        # Análisis preliminar y ciclo de revisión
+        print("⏳ Analizando puntos clave y acciones...")
+        result = await graph.ainvoke(initial_state, config, interrupt_before=["revise_keypoints", "generate"])
         
-        # Mostrar resultado formateado
+        while True:
+            content = result["messages"][-1].content
+            try:
+                analysis = json.loads(content)
+                print("\n📊 Análisis de puntos clave:")
+                print(json.dumps(analysis, ensure_ascii=False, indent=2))
+            except json.JSONDecodeError:
+                print("\n📊 Análisis de puntos clave:")
+                print(content)
+
+            print("\n📝 ¿Desea modificar los puntos clave? (Ingrese sus cambios o 'aprobado' para continuar):")
+            user_feedback = input().strip()
+            
+            if user_feedback.lower() == "aprobado" or user_feedback == "":
+                # Continuamos con la generación del acta
+                result = await graph.ainvoke(result, config, interrupt_before=["human_critique"])
+                break
+                
+            # Actualizar con el feedback del usuario
+            print("\n🔄 Actualizando análisis...")
+            new_state = {
+                "messages": result["messages"] + [HumanMessage(content=user_feedback)]
+            }
+            # Interrumpimos antes de revise_keypoints y generate para mantener el ciclo de revisión
+            result = await graph.ainvoke(new_state, config, interrupt_before=["revise_keypoints", "generate"])
+
+        # Obtenemos el contenido del acta generada
+        content = result["messages"][-1].content
         try:
-            # Intentar parsear como JSON para mejor formato
-            acta = json.loads(resultado["messages"][-1].content)
-            print("\n📄 Acta generada:")
+            acta = json.loads(content)
+            print("\n📄 Borrador inicial del acta:")
             print(json.dumps(acta, ensure_ascii=False, indent=2))
         except json.JSONDecodeError:
-            # Si no es JSON, mostrar como texto plano
-            print("\n📄 Acta generada:")
-            print(resultado["messages"][-1].content)
+            print("\n📄 Borrador inicial:")
+            print(content)
 
-        # Ciclo de críticas del usuario
+        # Ciclo de revisión del acta
         while True:
-            print("\n📝 Por favor, ingrese sus comentarios (o 'Aprobado' si está conforme):")
+            print("\n📝 Por favor, ingrese sus comentarios sobre el acta (o 'aprobado' si está conforme):")
             user_comments = input().strip()
             
             if user_comments.lower() == "aprobado" or user_comments == "":
-                print("\n✅ Acta aprobada y proceso completado")
+                print("\n✨ Generando versión final aprobada...")
+                try:
+                    acta = json.loads(content)
+                    print("\n📋 ACTA FINAL APROBADA:")
+                    print(json.dumps(acta, ensure_ascii=False, indent=2))
+                except json.JSONDecodeError:
+                    print("\n📋 VERSIÓN FINAL APROBADA:")
+                    print(content)
+                print("\n✅ Proceso de acta completado")
                 break
             
-            # Actualizar el estado con los comentarios del usuario
-            print("\n🔄 Procesando comentarios...")
+            # Actualizar con los comentarios del usuario
+            revision_count += 1
+            print(f"\n🔄 Procesando revisión #{revision_count}...")
             new_state = {
-                "messages": resultado["messages"] + [HumanMessage(content=user_comments)]
+                "messages": result["messages"] + [HumanMessage(content=user_comments)]
             }
             
-            resultado = await graph.ainvoke(new_state, config, interrupt_before=["human_critique"])
+            result = await graph.ainvoke(new_state, config, interrupt_before=["human_critique"])
+            content = result["messages"][-1].content
             
-            # Mostrar resultado actualizado
             try:
-                acta = json.loads(resultado["messages"][-1].content)
-                print("\n📄 Acta actualizada:")
+                acta = json.loads(content)
+                print(f"\n📝 Revisión #{revision_count} del acta:")
                 print(json.dumps(acta, ensure_ascii=False, indent=2))
             except json.JSONDecodeError:
-                print("\n📄 Acta actualizada:")
-                print(resultado["messages"][-1].content)
+                print(f"\n📝 Revisión #{revision_count}:")
+                print(content)
 
     except Exception as e:
         print(f"\n❌ Error durante el procesamiento: {str(e)}")
@@ -78,17 +121,39 @@ async def main():
     print("ℹ️  Puede escribir 'salir' en cualquier momento para terminar")
     
     while True:
-        print("\n📝 Por favor, ingrese el acta de la reunión:")
-        minutes_text = input().strip()
+        print("\n📝 Por favor, seleccione una opción:")
+        print("1. Ingresar texto directamente")
+        print("2. Cargar archivo .txt")
+        print("3. Salir")
         
-        if minutes_text.lower() == 'salir':
+        option = input("\nOpción: ").strip()
+        
+        if option == "3" or option.lower() == "salir":
             print("\n👋 Gracias por usar el sistema de actas.")
             break
+            
+        minutes_text = ""
+        
+        if option == "1":
+            print("\n📝 Por favor, ingrese el acta de la reunión:")
+            minutes_text = input().strip()
+        elif option == "2":
+            print("\n📂 Por favor, ingrese la ruta del archivo .txt:")
+            file_path = input().strip()
+            try:
+                minutes_text = read_meeting_file(file_path)
+                print(f"\n📄 Archivo cargado exitosamente: {file_path}")
+            except Exception as e:
+                print(f"\n❌ Error al cargar el archivo: {str(e)}")
+                continue
+        else:
+            print("\n⚠️ Opción no válida. Por favor, intente nuevamente.")
+            continue
             
         if minutes_text:
             await process_minutes(minutes_text)
         else:
-            print("⚠️  Por favor, ingrese un texto válido.")
+            print("⚠️ Por favor, ingrese un texto válido.")
 
 if __name__ == "__main__":
     asyncio.run(main())
