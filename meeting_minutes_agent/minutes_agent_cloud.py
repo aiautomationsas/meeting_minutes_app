@@ -14,8 +14,7 @@ from meeting_minutes_agent.nodes.nodes import (
 load_dotenv()
 
 def should_continue_keypoints_revision(state: State):
-    last_message = state["messages"][-1].content
-    if last_message.strip() == "aprobado" or not last_message.strip():
+    if state.get("keypoints_approved", False):
         return "generate"
     return "revise_keypoints"
 
@@ -26,8 +25,7 @@ def should_continue_reflection(state: State):
     return "reflect"
 
 def should_continue_revision(state: State):
-    last_message = state["messages"][-1].content
-    if last_message.strip() == "aprobado" or not last_message.strip():
+    if state.get("minutes_approved", False):
         return END
     return "revision"
 

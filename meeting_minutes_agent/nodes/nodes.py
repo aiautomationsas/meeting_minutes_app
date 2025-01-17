@@ -34,6 +34,28 @@ async def human_keypoints_node(state: State) -> State:
     return state
 
 async def revise_keypoints_node(state: State) -> State:
+    last_message = state["messages"][-1].content
+    keypoints_approved = last_message.strip().lower() == "aprobado" or not last_message.strip()
+    
+    if keypoints_approved:
+        return {
+            "messages": state["messages"],
+            "keypoints_approved": True
+        }
+        
+    # Find the last AI message with keypoints
+    last_keypoints = None
+    for message in reversed(state["messages"]):
+        if isinstance(message, AIMessage):
+            try:
+                last_keypoints = json.loads(message.content)
+                break
+            except json.JSONDecodeError:
+                continue
+    
+    if not last_keypoints:
+        raise ValueError("No se encontraron key points en el historial de mensajes")
+        
     revision_prompt = ChatPromptTemplate.from_messages([
         (
             "system",
@@ -46,34 +68,62 @@ async def revise_keypoints_node(state: State) -> State:
     ])
 
     revise = revision_prompt | llm.with_structured_output(Keypoints)
-    result = await revise.ainvoke(state["messages"])
+    result = await revise.ainvoke({"messages": state["messages"]})
     result_str = json.dumps(result, ensure_ascii=False, indent=2)
     
-    return {"messages": [AIMessage(content=result_str)]}
+    return {
+        "messages": [AIMessage(content=result_str)],
+        "keypoints_approved": False
+    }
 
 async def generation_node(state: State) -> State:
+    # Find the last AI message with keypoints
+    last_keypoints = None
+    for message in reversed(state["messages"]):
+        if isinstance(message, AIMessage):
+            try:
+                last_keypoints = json.loads(message.content)
+                break
+            except json.JSONDecodeError:
+                continue
+    
+    if not last_keypoints:
+        raise ValueError("No se encontraron key points en el historial de mensajes")
     
     meeting_minutes_prompt = ChatPromptTemplate.from_messages([
         (
             "system",
-            "As an expert in creating meeting minutes, generate a complete record based on:\n"
-            "1. The transcript of the meeting provided by the user in the first message.\n"
-            "2. The key points previously approved by the user.\n"
-            "3. Action items must be fully aligned with key points.\n"  
-            "4. The assigned_actions must be fully aligned with the key points.\n"
-            "Do not add information that is not in the transcript.\n"
+            "As an expert in creating meeting minutes, first analize the approved key points and then generate the meeting minutes based on the transcript of the meeting provided by the user.\n"
+            "Action items must be fully aligned with key points.\n"  
+            "The assigned_actions must be fully aligned with the key points.\n"
+            "Do not add information that is not in the transcript. If user gives you a key point that is not in the transcript, only inlcude it in the key_points section.\n"
             "Respond in Spanish."
+        ),
+        ("human",
+          "Create a meeting minutes based on the key points and the transcript. \n"
+          "The key points are:\n"
+          "{key_points}\n"
+          "The transcript is:\n"
+          "{transcript}\n"
+          "Respond in Spanish."
         ),
         MessagesPlaceholder(variable_name="messages"),
     ])
 
-    messages_dict = {"messages": state["messages"]}
+    messages_dict = {
+        "messages": state["messages"],
+        "key_points": json.dumps(last_keypoints, ensure_ascii=False, indent=2),
+        "transcript": state["messages"][0].content
+    }
     
     generate = meeting_minutes_prompt | llm.with_structured_output(MeetingMinutes)
     result = await generate.ainvoke(messages_dict)
     result_str = json.dumps(result, ensure_ascii=False, indent=2)
     
-    return {"messages": [AIMessage(content=result_str)]}
+    return {
+        "messages": [AIMessage(content=result_str)],
+        "keypoints_approved": True
+    }
 
 async def reflection_node(state: State) -> State:
     reflection_prompt = ChatPromptTemplate.from_messages([
@@ -103,6 +153,16 @@ async def human_critique_node(state: State) -> State:
     return state
 
 async def revision_minutes_node(state: State) -> State:
+    last_message = state["messages"][-1].content
+    minutes_approved = last_message.strip().lower() == "aprobado" or not last_message.strip()
+    
+    if minutes_approved:
+        return {
+            "messages": state["messages"],
+            "keypoints_approved": True,
+            "minutes_approved": True
+        }
+        
     revision_prompt = ChatPromptTemplate.from_messages([
         (
             "system", 
@@ -115,7 +175,11 @@ async def revision_minutes_node(state: State) -> State:
     ])
 
     revise = revision_prompt | llm.with_structured_output(MeetingMinutes)
-    result = await revise.ainvoke(state["messages"])
+    result = await revise.ainvoke({"messages": state["messages"]})
     result_str = json.dumps(result, ensure_ascii=False, indent=2)
     
-    return {"messages": [AIMessage(content=result_str)]}  
+    return {
+        "messages": [AIMessage(content=result_str)],
+        "keypoints_approved": True,
+        "minutes_approved": False
+    }  

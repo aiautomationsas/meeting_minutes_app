@@ -4,6 +4,7 @@ from langgraph.graph.message import add_messages
 
 class State(TypedDict):
     messages: Annotated[list, add_messages]
+    keypoints_approved: Annotated[bool, ..., "Flag indicating if keypoints have been approved"] = False
 
 class Attendee(TypedDict):
     name: Annotated[str, ..., "Participant's full name"]

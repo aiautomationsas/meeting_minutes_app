@@ -42,10 +42,12 @@ async def process_keypoints(client, thread_id: str, assistant_id: str) -> bool:
         update_state = {
             "messages": [
                 HumanMessage(content=user_input)
-            ]
+            ],
+            "keypoints_approved": False
         }
         
         if user_input.lower() == "aprobado" or not user_input:
+            update_state["keypoints_approved"] = True
             await client.threads.update_state(thread_id, update_state, as_node="keypoints")
             return True
             
@@ -81,7 +83,9 @@ async def process_minutes(client, assistant_id: str, minutes_text: str):
     initial_state = {
         "messages": [
             HumanMessage(content=minutes_text)
-        ]
+        ],
+        "keypoints_approved": False,
+        "minutes_approved": False
     }
     
     revision_count = 0
@@ -142,16 +146,18 @@ async def process_minutes(client, assistant_id: str, minutes_text: str):
         
         # Handle revisions
         while True:
-            print("\n📝 Por favor, ingrese sus comentarios (o 'Aprobado' si está conforme):")
+            print("\n📝 Por favor, ingrese sus comentarios (o 'aprobado' si está conforme):")
             user_comments = input().strip()
             
             update_state = {
                 "messages": [
                     HumanMessage(content=user_comments)
-                ]
+                ],
+                "keypoints_approved": True,
+                "minutes_approved": user_comments.lower() == "aprobado" or not user_comments.strip()
             }
             
-            if user_comments.lower() == "aprobado" or not user_comments:
+            if update_state["minutes_approved"]:
                 print("\n✨ Generando versión final aprobada...")
                 await client.threads.update_state(
                     thread_id, 
