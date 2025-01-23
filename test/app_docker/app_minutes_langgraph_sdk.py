@@ -94,6 +94,7 @@ async def process_minutes(client, assistant_id: str, minutes_text: str):
     try:
         # Initial keypoints processing
         print("⏳ Analizando puntos clave...")
+        print("🔄 Enviando estado inicial al servidor...")
         stream = client.runs.stream(
             assistant_id=assistant_id,
             thread_id=thread_id,
@@ -102,15 +103,20 @@ async def process_minutes(client, assistant_id: str, minutes_text: str):
             interrupt_before=["human_keypoints"]
         )
         
+        print("🔄 Esperando respuesta del servidor...")
         async for event in stream:
+            print(f"📨 Recibido evento: {type(event)}")
             if hasattr(event, 'data') and isinstance(event.data, dict):
+                print(f"📦 Contenido del evento: {event.data}")
                 messages = event.data.get('messages', [])
                 if messages:
+                    print(f"📬 Mensajes encontrados: {len(messages)}")
                     ai_messages = [msg for msg in messages if msg.get('type') == 'ai']
                     if ai_messages:
                         content = ai_messages[-1].get('content', '')
                         print("\n📊 Puntos clave identificados:")
                         print(content)
+                        print("-" * 50)
         
         # Handle keypoints review
         if not await process_keypoints(client, thread_id, assistant_id):

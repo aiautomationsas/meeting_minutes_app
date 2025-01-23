@@ -4,11 +4,20 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_anthropic import ChatAnthropic
 from meeting_minutes_agent.state.types import State, MeetingMinutes, Keypoints
 from dotenv import load_dotenv
+from langchain_openai.chat_models.base import BaseChatOpenAI
+import os
 
 load_dotenv()
-
+"""
 llm = ChatAnthropic(
     model="claude-3-5-haiku-20241022", max_tokens=8000
+)
+"""
+llm = BaseChatOpenAI(
+    model='deepseek-chat', 
+    openai_api_key=os.getenv('DEEPSEEK_API_KEY'),
+    openai_api_base='https://api.deepseek.com',
+    max_tokens=8000
 )
 
 async def keypoints_analysis_node(state: State) ->State:
