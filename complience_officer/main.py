@@ -16,8 +16,7 @@ load_dotenv()
 
 # Define the research state
 class ResearchState(TypedDict):
-    user_query:str
-    report: str
+    user_query: str
     documents: Dict[str, Dict[Union[str, int], Union[str, float]]]
     messages: Annotated[list[AnyMessage], add_messages]
 
@@ -147,50 +146,15 @@ def call_model(state: ResearchState):
     return {"messages": [response]}
     
 
-# Define the function that decides whether to continue research using tools or proceed to writing the report
-def should_continue(state: ResearchState) -> Literal["tools", "write_report"]:
+# Define the function that decides whether to continue research using tools or proceed to end
+def should_continue(state: ResearchState) -> Literal["tools", "output"]:
     messages = state['messages']
     last_message = messages[-1]
     # If the LLM makes a tool call, then we route to the "tools" node
     if last_message.tool_calls:
         return "tools"
-    # Otherwise, we stop (reply to the user with citations)
-    return "write_report"
-
-# Define the function to write the report based on the retrieved documents.
-def write_report(state: ResearchState):
-    # Create the prompt
-    prompt = f"""
-    Today's date is {datetime.now().strftime('%d/%m/%Y')}\n.
-    Your task is to provide accurate and up-to-date information on SARLAFT or SAGRILAFT compliance systems in response to user queries. 
-    Use your expert knowledge to address the questions or concerns raised.\n
-
-    When you receive an inquiry, follow these steps:
-
-    1. Carefully analyze the user's query.
-    Identify the key aspects related to SARLAFT or SAGRILAFT mentioned in the query.
-    3. Provide relevant, accurate and up-to-date information on the issues identified.
-    4. If the query requires specific information that you do not have, indicate that you do not have that exact information and suggest official sources where the user could find it.
-    5. Make sure your response is clear, concise and easy to understand.
-
-    When providing information, keep the following in mind:
-    - Cite relevant laws, regulations or circulars where appropriate.
-    - Explain technical concepts in a simple manner.
-    - If relevant, mention regulatory entities such as the Superintendencia Financiera de Colombia or the UIAF (Unidad de Información y Análisis Financiero).\n
-
-    User inquery:
-    -----
-    {state['user_query']}
-    -----
-
-    Here are all the documents you gathered so far:\n{state['documents']}\n
-    Use only the relevant and most recent documents.
-
-    Respond in Spanish language""" 
-    messages = [state['messages'][-1]] + [SystemMessage(content=prompt)]
-    response = model.with_structured_output(QuotedAnswer).invoke(messages)
-    # We return a list, because this will get added to the existing list
-    return {"messages": [AIMessage(content=f"Generated Report:\n{response.answer}")], "report": response.answer}
+    # Otherwise, we stop and return the research results
+    return "output"
 
 # Define a graph
 workflow = StateGraph(ResearchState)
@@ -198,9 +162,9 @@ workflow = StateGraph(ResearchState)
 # Add nodes
 workflow.add_node("research", call_model)
 workflow.add_node("tools", tool_node)
-workflow.add_node("write_report", write_report)
+workflow.add_node("output", lambda state: state)  # Add an output node that simply returns the state
 
-# Set the entrypoint as route_query
+# Set the entrypoint as research
 workflow.set_entry_point("research")
 
 # Determine which node is called next
@@ -210,9 +174,8 @@ workflow.add_conditional_edges(
     should_continue,
 )
 
-# Add a normal edge from `tools` to `route_query`.
-# This means that after `tools` is called, `route_query` node is called next.
+# Add a normal edge from `tools` to `research`.
 workflow.add_edge("tools", "research")
-workflow.add_edge("write_report", END)
+workflow.add_edge("output", END)
 
 graph = workflow.compile()
