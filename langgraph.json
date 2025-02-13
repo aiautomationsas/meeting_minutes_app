@@ -6,7 +6,8 @@
       "agent_company_research": "./company_research_agent/company_researcher.py:workflow",
       "agent_cotizador": "./cotizador_agent/cotizador_agent.py:graph",
       "agent_engineer": "./langgraph_engineer/agent.py:graph",
-      "agent_railway": "./agente_ferroviario/railway_agent.py:graph"
+      "agent_railway": "./agente_ferroviario/railway_agent.py:graph",
+      "agent_compliance_officer": "./complience_officer/main.py:graph"
     },
     "env": ".env"
   }
