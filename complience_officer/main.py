@@ -4,9 +4,9 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from tavily import AsyncTavilyClient
 import json
 import asyncio
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain_core.messages import AnyMessage, AIMessage, SystemMessage, ToolMessage
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 from langgraph.graph import StateGraph, START, END, add_messages
 import os
@@ -51,7 +51,10 @@ class TavilyQuery(BaseModel):
         default=[
             "https://www.suin-juriscol.gov.co/",
             "https://www.riskglobalconsulting.com/boletin-informativo/guia-sobre-el-sagrilaft-en-colombia-implementacion-y-requisitos-para-su-empresa/",
-            "https://www.supersociedades.gov.co/"
+            "https://www.supersociedades.gov.co/",
+            "https://ambitojuridico.com/",
+            "https://dian.gov.co/",
+            "https://www.uiaf.gov.co/",
         ],
         description="list of domains to include in the research"
     )
@@ -93,7 +96,7 @@ async def tavily_search(sub_queries: List[TavilyQuery]):
 tools = [tavily_search]
 tools_by_name = {tool.name: tool for tool in tools}
 tavily_client = AsyncTavilyClient()
-model = ChatOpenAI(model="gpt-4o-mini",temperature=0).bind_tools(tools)
+model = ChatGroq(model="deepseek-r1-distill-llama-70b", temperature=0).bind_tools(tools)
 
 # Define an async custom tool node to store Tavily's search results for improved processing and filtering.
 async def tool_node(state: ResearchState):
@@ -145,6 +148,8 @@ def call_model(state: ResearchState):
     # We return a list, because this will get added to the existing list
     return {"messages": [response]}
     
+def output_node(state: ResearchState):
+    return state
 
 # Define the function that decides whether to continue research using tools or proceed to end
 def should_continue(state: ResearchState) -> Literal["tools", "output"]:
@@ -162,7 +167,7 @@ workflow = StateGraph(ResearchState)
 # Add nodes
 workflow.add_node("research", call_model)
 workflow.add_node("tools", tool_node)
-workflow.add_node("output", lambda state: state)  # Add an output node that simply returns the state
+workflow.add_node("output", output_node)  # Add an output node that simply returns the state
 
 # Set the entrypoint as research
 workflow.set_entry_point("research")

@@ -16,6 +16,7 @@ async def main():
 
     # Example queries about SARLAFT or SAGRILAFT
     queries = [
+        "futbol",
         "¿Cuáles son los principales requisitos del SAGRILAFT para empresas en Colombia?",
         "Explique las obligaciones de una empresa bajo el sistema SARLAFT",
         "¿Cómo implementar un sistema de gestión de riesgos de lavado de activos?"

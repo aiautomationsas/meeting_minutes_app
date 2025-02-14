@@ -7,7 +7,8 @@
       "agent_cotizador": "./cotizador_agent/cotizador_agent.py:graph",
       "agent_engineer": "./langgraph_engineer/agent.py:graph",
       "agent_railway": "./agente_ferroviario/railway_agent.py:graph",
-      "agent_compliance_officer": "./complience_officer/main.py:graph"
+      "agent_compliance_officer": "./complience_officer/main.py:graph",
+      "agent_debate": "./debate_agent/debate_agent.py:graph"
     },
     "env": ".env"
   }

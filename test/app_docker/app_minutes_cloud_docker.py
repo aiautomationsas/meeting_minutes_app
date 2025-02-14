@@ -8,6 +8,15 @@ import json
 
 load_dotenv()
 
+def read_text_file(file_path: str) -> Optional[str]:
+    """Read content from a text file."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return file.read()
+    except Exception as e:
+        print(f"❌ Error reading file: {str(e)}")
+        return None
+
 async def create_new_thread(client) -> Optional[str]:
     """Create a new thread for each minutes processing."""
     try:
@@ -227,19 +236,36 @@ async def main():
 
     print("\n👋 Bienvenido al sistema de actas de reunión")
     print("ℹ️  Puede escribir 'salir' en cualquier momento para terminar")
+    print("📂 Para procesar un archivo .txt, escriba 'archivo' seguido de la ruta del archivo")
     
     while True:
-        print("\n📝 Por favor, ingrese el acta de la reunión:")
-        minutes_text = input().strip()
+        print("\n📝 Por favor, ingrese el acta de la reunión o indique un archivo:")
+        user_input = input().strip()
         
-        if minutes_text.lower() == 'salir':
+        if user_input.lower() == 'salir':
             print("\n👋 Gracias por usar el sistema de actas.")
             break
             
-        if minutes_text:
-            await process_minutes(client, assistant_id, minutes_text)
+        if user_input.lower().startswith('archivo '):
+            file_path = user_input[7:].strip()  # Remove 'archivo ' prefix
+            if not file_path.endswith('.txt'):
+                print("⚠️  Solo se aceptan archivos .txt")
+                continue
+                
+            if not os.path.exists(file_path):
+                print("⚠️  El archivo no existe")
+                continue
+                
+            minutes_text = read_text_file(file_path)
+            if minutes_text:
+                print(f"📄 Procesando archivo: {file_path}")
+                await process_minutes(client, assistant_id, minutes_text)
+            else:
+                print("⚠️  No se pudo leer el archivo")
+        elif user_input:
+            await process_minutes(client, assistant_id, user_input)
         else:
-            print("⚠️  Por favor, ingrese un texto válido.")
+            print("⚠️  Por favor, ingrese un texto válido o la ruta de un archivo.")
 
 if __name__ == "__main__":
     asyncio.run(main())
