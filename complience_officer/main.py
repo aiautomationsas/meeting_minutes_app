@@ -1,6 +1,5 @@
 from typing import TypedDict, List, Annotated, Literal, Dict, Union, Optional 
 from datetime import datetime
-from langchain_core.pydantic_v1 import BaseModel, Field
 from tavily import AsyncTavilyClient
 import json
 import asyncio

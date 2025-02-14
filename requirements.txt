@@ -1,5 +1,6 @@
 langchain-openai
 langchain_anthropic
+langchain_groq
 langchain_cohere
 langchain-community
 langchain-core
